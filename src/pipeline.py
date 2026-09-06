@@ -10,8 +10,38 @@ def load_data(filepath):
     print(f"[load]  {filepath} -> {len(df)} baris")
     return df
 
+def inspect_data(df):
+    """Tampilkan hasil pemeriksaan awal dataset ke terminal."""
+    print("\n===== INSPEKSI DATASET =====")
+    print(f"Ukuran dataset: {df.shape[0]} baris x {df.shape[1]} kolom")
+
+    print("\n--- Lima baris pertama ---")
+    print(df.head().to_string())
+
+    print("\n--- Tipe data setiap kolom ---")
+    print(df.dtypes.to_string())
+
+    missing = df.isna().sum()
+    missing = missing[missing > 0]
+    print("\n--- Missing values per kolom ---")
+    print(missing.to_string() if len(missing) > 0 else "tidak ada")
+
+    print(f"\n--- Duplicate records: {df.duplicated().sum()} baris ---")
+
+    print("\n--- Nilai unik kolom kategorikal ---")
+    cat_cols = df.select_dtypes(include=["object", "string"]).columns
+    for col in cat_cols:
+        unique = df[col].dropna().unique()
+        if len(unique) <= 25:
+            print(f"{col}: {sorted(map(str, unique))}")
+        else:
+            print(f"{col}: {len(unique)} nilai unik (kardinalitas tinggi, dilewati)")
+
+    return df
+
 def clean_data(df):
     before = len(df)
+    missing_before = int(df.isna().sum().sum())
 
     df = df.dropna(subset=["transaction_date"])
 
@@ -32,7 +62,9 @@ def clean_data(df):
         .transform("median")
 
     )
+    before_dedup = len(df)
     df = df.drop_duplicates()
+    duplicates_removed = before_dedup - len(df)
 
     df["transaction_date"] = pd.to_datetime(
         df["transaction_date"], errors="coerce", format="mixed"
@@ -41,7 +73,18 @@ def clean_data(df):
     cols = ["make", "body-style", "drive-wheels", "fuel-system"]
     df[cols] = df[cols].apply(lambda col: col.str.lower().str.strip())
 
+    missing_after = int(df.isna().sum().sum())
+    changed_cols = [
+        "transaction_date",                            # dropna + parsing datetime
+        "make", "num-of-doors", "horsepower-binned",   # fillna
+        "stroke", "price", "horsepower",               # imputasi mean/median
+        "body-style", "drive-wheels", "fuel-system",   # lowercase + strip
+    ]
+
+    print(f"[clean] missing values: {missing_before} -> {missing_after}")
+    print(f"[clean] baris duplikat dihapus: {duplicates_removed}")
     print(f"[clean] {before} -> {len(df)} baris ({before - len(df)} dibuang)")
+    print(f"[clean] kolom yang berubah: {', '.join(changed_cols)}")
     return df
 
 def transform_data(df):
@@ -95,6 +138,9 @@ def transform_data(df):
         "horsepower-binned"
     ]
     df = pd.get_dummies(df, columns=categorical_cols, dtype=int)
+
+    print(f"[transform] mapping ordinal + min-max scaling + one-hot encoding")
+    print(f"[transform] dataset kini {df.shape[0]} baris x {df.shape[1]} kolom")
     return df
 
 def save_data(df, filepath):
@@ -103,6 +149,7 @@ def save_data(df, filepath):
 def main():
     print("Mulai jalankan pipeline...")
     df = load_data(f"{PROJECT_DIR}/data/raw/automobileEDA_dirty_training.csv")
+    df = inspect_data(df)
     df = clean_data(df)
     df = transform_data(df)
     save_data(df, f"{PROJECT_DIR}/data/processed/automobileEDA_processed.csv")

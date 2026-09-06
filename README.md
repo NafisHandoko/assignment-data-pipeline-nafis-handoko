@@ -187,12 +187,41 @@ Dependencies (`requirements.txt`): `pandas`, `scikit-learn`, `ipykernel` (ipyker
 python src/pipeline.py
 ```
 
-Script menggunakan `pathlib.Path` untuk resolve absolute path, jadi aman dijalankan dari direktori mana pun. Output di terminal:
+Script menggunakan `pathlib.Path` untuk resolve absolute path, jadi aman dijalankan dari direktori mana pun. Ringkasan output di terminal (dipotong untuk keringkasan):
 
 ```
 Mulai jalankan pipeline...
 [load]  .../data/raw/automobileEDA_dirty_training.csv -> 205 baris
+
+===== INSPEKSI DATASET =====
+Ukuran dataset: 205 baris x 30 kolom
+
+--- Lima baris pertama ---
+...
+--- Tipe data setiap kolom ---
+...
+--- Missing values per kolom ---
+transaction_date     2
+make                 2
+num-of-doors         2
+stroke               4
+horsepower           3
+price                3
+horsepower-binned    1
+
+--- Duplicate records: 4 baris ---
+
+--- Nilai unik kolom kategorikal ---
+body-style: ['SEDAN', 'Sedan', 'convertible', 'hardtop', 'hatchback', 'sedan', 'wagon']
+drive-wheels: ['4wd', 'AWD', 'RWD', 'fwd', 'rwd']
+...
+
+[clean] missing values: 17 -> 0
+[clean] baris duplikat dihapus: 4
 [clean] 205 -> 199 baris (6 dibuang)
+[clean] kolom yang berubah: transaction_date, make, num-of-doors, horsepower-binned, stroke, price, horsepower, body-style, drive-wheels, fuel-system
+[transform] mapping ordinal + min-max scaling + one-hot encoding
+[transform] dataset kini 199 baris x 75 kolom
 Pipeline selesai...
 ```
 
@@ -207,7 +236,7 @@ Raw CSV ──► Load Data ──► Data Inspection ──► Data Cleaning �
 | Tahap | Implementasi (`src/pipeline.py`) | Yang dilakukan |
 |---|---|---|
 | **Extract / Load** | `load_data()` | Baca CSV mentah dari `data/raw/` |
-| **Inspection** | notebook + laporan README ini | Cek shape, tipe data, missing values, duplikat, nilai unik kategorikal |
+| **Inspection** | `inspect_data()` | Cek shape, tipe data, missing values, duplikat, nilai unik kategorikal — ditampilkan ke terminal saat pipeline dijalankan |
 | **Transform (clean)** | `clean_data()` | Tangani missing values, hapus duplikat, seragamkan kategori, perbaiki tipe data |
 | **Transform (enrich)** | `transform_data()` | Mapping ordinal, Min-Max Scaling, one-hot encoding |
 | **Load / Save** | `save_data()` → `main()` | Simpan hasil ke `data/processed/automobileEDA_processed.csv` |
